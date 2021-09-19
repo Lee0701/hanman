@@ -2,12 +2,27 @@
 const fs = require('fs')
 
 const {parse} = require('svg-parser')
-const {Canvas} = require('canvas')
 require('canvas-5-polyfill')
 
+const CHAR_WIDTH = 109
+const CHAR_HEIGHT = 109
+
+const hanja = fs.readFileSync('./hanja.txt', 'utf8').split('\n')
+        .filter((line) => line.trim() && !line.startsWith('#')).map((line) => line.split(':'))
+const hanjaWords = hanja.map((entry) => entry[1]).filter((w) => w.length > 1 && !w.match(/[가-힣ㄱ-ㅎㅏ-ㅣ]/))
+
+const charId = (char) => char.charCodeAt(0).toString(16).padStart(5, '0')
+const svgPath = (char) => `./kanji/${charId(char)}.svg`
+
+const randomWord = (len) => {
+    const list = hanjaWords.filter((w) => w.length == len)
+    return list[Math.floor(Math.random() * list.length)]
+}
+
+const isValidWord = (word) => word.split('').every((c) => fs.existsSync(svgPath(c)))
+
 const loadChar = (char) => {
-    const code = char.charCodeAt(0).toString(16).padStart(5, '0')
-    const fileId = `./kanji/${code}.svg`
+    const fileId = svgPath(char)
     const svg = parse(fs.readFileSync(fileId, 'utf8'))
     const strokePaths = svg.children[0].children.find((e) => e.properties.id.startsWith('kvg:StrokePaths'))
     return strokePaths
@@ -44,15 +59,65 @@ const getRoot = (tag) => {
     return tag.children[0].properties['kvg:element']
 }
 
-const g = new Canvas(109, 109)
-const ctx = g.getContext('2d')
-ctx.strokeStyle = 'black'
-ctx.lineWidth = 5
-const char = loadChar('漢')
-const root = getRoot(char)
-const groups = getGroups(char)
-const strokes = getStrokes(char)
-const randomStrokes = []
-new Array(5).fill().forEach(() => randomStrokes.push(strokes[Math.floor(Math.random() * strokes.length)]))
-drawPath(ctx, char, randomStrokes)
-fs.writeFileSync('out.png', g.toBuffer())
+class HanmanGame {
+    constructor(query, difficulty) {
+        if(typeof query == 'string') this.word = query
+        else if(typeof query == 'number') {
+            do this.word = randomWord(query)
+            while(!isValidWord(this.word))
+        } else {
+            do this.word = randomWord(Math.floor(Math.random() * 4) + 2)
+            while(!isValidWord(this.word))
+        }
+        if(!isValidWord(this.word)) throw new Error('Invalid word')
+        if(typeof difficulty == 'number') {
+            if(difficulty >= 1) this.strokeCount = difficulty
+            else this.strokeRatio = difficulty
+        } else  if(typeof difficulty == 'string') {
+            // TODO: difficulty selection
+            this.strokeRatio = 0.1
+        } else {
+            this.strokeRatio = 0.5
+        }
+        const chars = this.word.split('')
+        this.paths = chars.map((c) => loadChar(c))
+        this.groups = this.paths.flatMap((path) => getGroups(path))
+        const allStrokes = this.paths.map((path) => getStrokes(path))
+        this.strokes = allStrokes.flatMap((strokes) => {
+            const randomStrokes = []
+            const count = this.strokeCount || Math.floor(this.strokeRatio * strokes.length)
+            new Array(count).fill().forEach(() => {
+                if(randomStrokes.length == strokes.length) return
+                let stroke
+                do stroke = strokes[Math.floor(Math.random() * strokes.length)]
+                while(randomStrokes.includes(stroke))
+                randomStrokes.push(stroke)
+            })
+            return randomStrokes
+        })
+        this.guessed = []
+    }
+    draw(canvas) {
+        canvas.width = this.word.length * CHAR_WIDTH
+        canvas.height = CHAR_HEIGHT
+        const ctx = canvas.getContext('2d')
+        ctx.strokeStyle = 'black'
+        ctx.lineWidth = 5
+        this.paths.forEach((path, i) => {
+            ctx.save()
+            ctx.translate(i * CHAR_WIDTH, 0)
+            drawPath(ctx, path, this.strokes)
+            ctx.restore()
+        })
+    }
+    guess(c) {
+        this.guessed.push(c)
+        const matchingGroups = this.groups.filter(([key]) => key == c)
+        if(matchingGroups.length) {
+            matchingGroups.forEach(([_key, value]) => this.strokes.push(value))
+            return matchingGroups.length
+        } else return false
+    }
+}
+
+module.exports = HanmanGame
