@@ -60,7 +60,7 @@ const getRoot = (tag) => {
 }
 
 class HanmanGame {
-    constructor(query, difficulty) {
+    constructor(query, difficulty, lives=7) {
         if(typeof query == 'string') this.word = query
         else if(typeof query == 'number') {
             do this.word = randomWord(query)
@@ -96,8 +96,9 @@ class HanmanGame {
             return randomStrokes
         })
         this.guessed = []
+        this.lives = lives
     }
-    draw(canvas) {
+    draw(canvas, always=false) {
         canvas.width = this.word.length * CHAR_WIDTH
         canvas.height = CHAR_HEIGHT
         const ctx = canvas.getContext('2d')
@@ -106,7 +107,7 @@ class HanmanGame {
         this.paths.forEach((path, i) => {
             ctx.save()
             ctx.translate(i * CHAR_WIDTH, 0)
-            drawPath(ctx, path, this.strokes)
+            drawPath(ctx, path, this.strokes, always)
             ctx.restore()
         })
     }
@@ -116,7 +117,10 @@ class HanmanGame {
         if(matchingGroups.length) {
             matchingGroups.forEach(([_key, value]) => this.strokes.push(value))
             return matchingGroups.length
-        } else return false
+        } else {
+            this.lives--
+            return false
+        }
     }
 }
 

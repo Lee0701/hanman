@@ -12,6 +12,8 @@
   "dependencies": {
     "canvas": "^2.8.0",
     "canvas-5-polyfill": "^0.1.5",
-    "svg-parser": "^2.0.4"
+    "dotenv": "^10.0.0",
+    "svg-parser": "^2.0.4",
+    "telegraf": "^4.4.2"
   }
 }
