@@ -5,6 +5,7 @@ const {Canvas} = require('canvas')
 const Game = require('./hanman')
 
 const NUM_GUESSES = 7
+const HANJA_REGEX = /[\u4E00-\u62FF\u6300-\u77FF\u7800-\u8CFF\u8D00-\u9FFF\u3400-\u4DBF]/
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const chats = {}
@@ -21,7 +22,7 @@ const getCaption = (game) => {
 
 bot.command('hanman', (context) => {
     if(chats[context.chat.id]) {
-        context.reply('漑遊戲中')
+        context.reply('漑遊戲中！')
     } else {
         const game = new Game(2)
         chats[context.chat.id] = game
@@ -39,7 +40,7 @@ bot.on('text', (context) => {
         delete chats[context.chat.id]
     } else {
         // 推測
-        if(text.length == 1) {
+        if(text.length == 1 && text.match(HANJA_REGEX)) {
             if(game.guessed.includes(text)) {
                 context.reply('旣推測！')
             } else {
