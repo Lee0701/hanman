@@ -36,7 +36,7 @@ bot.on('text', (context) => {
     if(!game) return
     if(text == game.word) {
         // 正答
-        context.replyWithPhoto({source: drawGame(game, true).toBuffer()}, {caption: '成功！'})
+        context.replyWithPhoto({source: drawGame(game, true).toBuffer()}, {caption: `成功！(${game.word})`})
         delete chats[context.chat.id]
     } else {
         // 推測
@@ -45,8 +45,12 @@ bot.on('text', (context) => {
                 context.reply('旣推測！')
             } else {
                 game.guess(text)
-                if(game.lives <= 0) {
-                    context.replyWithPhoto({source: drawGame(game, true).toBuffer()}, {caption: '失敗！'})
+                if(game.word.split('').every((c) => game.guessed.includes(c))) {
+                    // 正答
+                    context.replyWithPhoto({source: drawGame(game, true).toBuffer()}, {caption: `成功！(${game.word})`})
+                    delete chats[context.chat.id]
+                } else if(game.lives <= 0) {
+                    context.replyWithPhoto({source: drawGame(game, true).toBuffer()}, {caption: `失敗！(${game.word})`})
                     delete chats[context.chat.id]
                 } else {
                     context.replyWithPhoto({source: drawGame(game).toBuffer()}, {caption: getCaption(game)})
