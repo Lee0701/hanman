@@ -7,17 +7,8 @@ require('canvas-5-polyfill')
 const CHAR_WIDTH = 109
 const CHAR_HEIGHT = 109
 
-const hanja = fs.readFileSync('./hanja.txt', 'utf8').split('\n')
-        .filter((line) => line.trim() && !line.startsWith('#')).map((line) => line.split(':'))
-const hanjaWords = hanja.map((entry) => entry[1]).filter((w) => w.length > 1 && !w.match(/[가-힣ㄱ-ㅎㅏ-ㅣ]/))
-
 const charId = (char) => char.charCodeAt(0).toString(16).padStart(5, '0')
 const svgPath = (char) => `./kanji/${charId(char)}.svg`
-
-const randomWord = (len) => {
-    const list = hanjaWords.filter((w) => w.length == len)
-    return list[Math.floor(Math.random() * list.length)]
-}
 
 const isValidWord = (word) => word.split('').every((c) => fs.existsSync(svgPath(c)))
 
@@ -55,20 +46,9 @@ const getStrokes = (tag) => {
     return [...current, ...(tag.children || []).flatMap((c) => getStrokes(c))]
 }
 
-const getRoot = (tag) => {
-    return tag.children[0].properties['kvg:element']
-}
-
 class HanmanGame {
-    constructor(query, difficulty, lives=7) {
-        if(typeof query == 'string') this.word = query
-        else if(typeof query == 'number') {
-            do this.word = randomWord(query)
-            while(!isValidWord(this.word))
-        } else {
-            do this.word = randomWord(Math.floor(Math.random() * 4) + 2)
-            while(!isValidWord(this.word))
-        }
+    constructor(word, difficulty, lives=7) {
+        this.word = word
         if(!isValidWord(this.word)) throw new Error('Invalid word')
         if(typeof difficulty == 'number') {
             if(difficulty >= 1) this.strokeCount = difficulty
@@ -124,4 +104,4 @@ class HanmanGame {
     }
 }
 
-module.exports = HanmanGame
+module.exports = {HanmanGame, isValidWord}
