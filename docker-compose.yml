@@ -1,0 +1,9 @@
+
+version: '3.8'
+services:
+  bot:
+    build: ./
+    image: hanman-bot
+    volumes:
+     - ./.env:/usr/src/app/.env
+    restart: always
